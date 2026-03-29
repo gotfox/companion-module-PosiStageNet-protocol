@@ -17,6 +17,8 @@ export interface ModuleConfig {
 	useTrgtPos?: boolean
 	useValidity?: boolean
 	useTimestamp?: boolean
+	useTrackerTimeout?: boolean
+	trackerTimeout?: number
 }
 
 export function GetConfigFields(self: ModuleInstance): SomeCompanionConfigField[] {
@@ -77,6 +79,28 @@ export function GetConfigFields(self: ModuleInstance): SomeCompanionConfigField[
 			max: 4,
 			required: true,
 			isVisible: (options) => options.advancedOptions === true,
+		},
+		{
+			type: 'checkbox',
+			id: 'useTrackerTimeout',
+			label: 'Clear Validity when tracker data is stale',
+			width: 6,
+			default: false,
+			tooltip:
+				'If no data packet is received from a tracker within the timeout window, the validity variable will be cleared to an empty string.',
+			isVisible: (options) => options.advancedOptions === true,
+		},
+		{
+			type: 'number',
+			id: 'trackerTimeout',
+			label: 'Tracker data timeout (ms)',
+			width: 6,
+			default: 10,
+			min: 1,
+			max: 60000,
+			tooltip:
+				"How long (in milliseconds) without a data packet before a tracker's validity variable is considered stale and cleared.",
+			isVisible: (options) => options.advancedOptions === true && options.useTrackerTimeout === true,
 		},
 		{
 			type: 'checkbox',

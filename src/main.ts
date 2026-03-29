@@ -38,6 +38,7 @@ interface TrackerData {
 	accel?: { x: number; y: number; z: number }
 	trgtpos?: { x: number; y: number; z: number }
 	timestamp?: bigint
+	lastSeen?: number
 }
 
 interface ChunkHeader {
@@ -458,6 +459,8 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 					break
 			}
 		}
+
+		tracker.lastSeen = Date.now()
 	}
 
 	private updateTrackerVariables(): void {
@@ -504,8 +507,12 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 				variableValues[`${prefix}ori_z`] = this.format(tracker.ori.z)
 			}
 
-			if (tracker.validity !== undefined) {
-				variableValues[`${prefix}validity`] = this.format(tracker.validity)
+			if (tracker.validity !== undefined && this.config.useValidity) {
+				const timeout = this.config.trackerTimeout ?? 10
+				const isStale =
+					this.config.useTrackerTimeout === true &&
+					(tracker.lastSeen === undefined || Date.now() - tracker.lastSeen > timeout)
+				variableValues[`${prefix}validity`] = isStale ? '' : this.format(tracker.validity)
 			}
 
 			if (tracker.accel && this.config.useAccel) {
