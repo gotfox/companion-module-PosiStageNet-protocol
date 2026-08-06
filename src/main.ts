@@ -53,6 +53,7 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 	private socket?: dgram.Socket
 	public currentTrackerList: number[] = []
 	private trackers = new Map<number, TrackerData>()
+	private trackerTimeoutTimers = new Map<number, NodeJS.Timeout>()
 	private systemName = ''
 	private packetTimestamps: number[] = []
 	private connectionLostTimer?: NodeJS.Timeout
@@ -230,6 +231,11 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 			}
 		}
 		this.trackers.clear()
+
+		for (const timer of this.trackerTimeoutTimers.values()) {
+			clearTimeout(timer)
+		}
+		this.trackerTimeoutTimers.clear()
 	}
 
 	private handleMessage(buffer: Buffer, _rinfo: RemoteInfo): void {
@@ -461,6 +467,19 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 		}
 
 		tracker.lastSeen = Date.now()
+
+		if (this.config.useTrackerTimeout) {
+			const existing = this.trackerTimeoutTimers.get(tracker.id)
+			if (existing) clearTimeout(existing)
+			const deadline = this.config.trackerTimeout ?? 10
+			this.trackerTimeoutTimers.set(
+				tracker.id,
+				setTimeout(() => {
+					this.trackerTimeoutTimers.delete(tracker.id)
+					this.updateTrackerVariables()
+				}, deadline),
+			)
+		}
 	}
 
 	private updateTrackerVariables(): void {
